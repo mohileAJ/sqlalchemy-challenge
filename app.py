@@ -50,9 +50,12 @@ def homepage():
     f"/api/v1.0/<start>/<end> <br/>"
   )
 
+# Return the last full year of precipitation data, in json format
 @app.get("/api/v1.0/precipitation")
 def get_precipitation():
+  # Date of the most recent measuremnt
   most_recent_date, = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+  # One-year before the most recent measurement date
   one_year_ago = (dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=365)).strftime('%Y-%m-%d')
 
   # Perform a query to retrieve the data and precipitation scores
@@ -60,7 +63,10 @@ def get_precipitation():
 
   results_json = {}
   for date, precip in results:
-    results_json[date] = precip
+    if date in results_json:
+      results_json[date].append(precip)
+    else:
+      results_json[date] = [precip]
   
   return jsonify(results_json)
 
@@ -95,6 +101,7 @@ def get_most_active_station_temps_last_year():
   # Perform a query to retrieve the data and precipitation scores
   results = session.query(Measurement.date, Measurement.tobs).filter(Measurement.station == most_active_station).filter(Measurement.date >= one_year_ago).all()
 
+  # Constructing the response dictionary
   results_json = []
   for date, tobs in results:
     results_json.append({
